@@ -1,0 +1,113 @@
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DBT_USER}
+      POSTGRES_PASSWORD: ${DBT_PASSWORD}
+      POSTGRES_DB: ${DBT_DBNAME}
+    ports:
+      - "5432:5432"
+
+  airflow-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow-secure
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__CORE__DAGS_FOLDER: ${AIRFLOW__CORE__DAGS_FOLDER}
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: ${AIRFLOW__LOGGING__BASE_LOG_FOLDER}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      DBT_HOST: ${DBT_HOST}
+      DBT_USER: ${DBT_USER}
+      DBT_PASSWORD: ${DBT_PASSWORD}
+      DBT_PORT: ${DBT_PORT}
+      DBT_SCHEMA: ${DBT_SCHEMA}
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts:Z
+      - ./data:/opt/airflow/data
+      - ./dbt:/opt/airflow/dbt
+      - ./models:/opt/airflow/models
+      - ./reports:/opt/airflow/reports
+      - ./utils:/opt/airflow/utils:Z
+      - ./dbt_project.yml:/opt/airflow/dbt_project.yml
+    ports:
+      - "8080:8080"
+    command: ["airflow", "webserver"]
+    restart: always
+
+  airflow-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow-secure
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__CORE__DAGS_FOLDER: ${AIRFLOW__CORE__DAGS_FOLDER}
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: ${AIRFLOW__LOGGING__BASE_LOG_FOLDER}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      DBT_HOST: ${DBT_HOST}
+      DBT_USER: ${DBT_USER}
+      DBT_PASSWORD: ${DBT_PASSWORD}
+      DBT_PORT: ${DBT_PORT}
+      DBT_SCHEMA: ${DBT_SCHEMA}
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts:Z
+      - ./data:/opt/airflow/data
+      - ./dbt:/opt/airflow/dbt
+      - ./models:/opt/airflow/models
+      - ./reports:/opt/airflow/reports
+      - ./utils:/opt/airflow/utils:Z
+      - ./dbt_project.yml:/opt/airflow/dbt_project.yml
+    command: ["airflow", "scheduler"]
+    restart: always
+
+  airflow-init:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow-secure
+    depends_on:
+      - postgres
+    environment:
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR}
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+      AIRFLOW__CORE__DAGS_FOLDER: ${AIRFLOW__CORE__DAGS_FOLDER}
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: ${AIRFLOW__LOGGING__BASE_LOG_FOLDER}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW__WEBSERVER__SECRET_KEY}
+      DBT_HOST: ${DBT_HOST}
+      DBT_USER: ${DBT_USER}
+      DBT_PASSWORD: ${DBT_PASSWORD}
+      DBT_PORT: ${DBT_PORT}
+      DBT_SCHEMA: ${DBT_SCHEMA}
+      EXCHANGE_API_KEY: ${EXCHANGE_API_KEY}
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts:Z
+      - ./data:/opt/airflow/data
+      - ./dbt:/opt/airflow/dbt
+      - ./models:/opt/airflow/models
+      - ./reports:/opt/airflow/reports
+      - ./utils:/opt/airflow/utils:Z
+      - ./dbt_project.yml:/opt/airflow/dbt_project.yml
+    entrypoint: >
+      bash -c "
+      echo 'Waiting for Postgres...' &&
+      while ! pg_isready -h postgres -p 5432; do sleep 1; done &&
+      airflow db upgrade &&
+      airflow users create --username admin --password admin --firstname Camila --lastname Muñoz --role Admin --email admin@example.com"
+    restart: "no"
+
+volumes:
+  postgres_data:
